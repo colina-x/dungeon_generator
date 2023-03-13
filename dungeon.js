@@ -15,6 +15,7 @@ class rect{
 }
 ind = 0
 ctx.fillStyle = COLOR[ind];
+ctx.fillRect(0,0,SIZE,SIZE)
 for (i = 0;i< WIDTH / SIZE;i++) {
     for (j = 0; j < HEIGHT / SIZE;j++) {
         ctx.fillRect(i, j, SIZE, SIZE)
