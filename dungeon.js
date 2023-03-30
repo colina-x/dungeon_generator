@@ -348,7 +348,6 @@ function addRooms(n) {
 }
 
 function carve(pos) {
-    // console.log(pos);
     ctx.fillRect(pos.x*SIZE, pos.y*SIZE, SIZE , SIZE)
     MAP[pos.x][pos.y] = 1;
     _regions[pos] = _currentRegion;
@@ -433,7 +432,6 @@ function connectRegions() {
         connectorRegions[pos] = regions;
         connectors.push(pos)
     }
-    console.log(connectors);
 
     var merged = {};
     var openRegions = new Set();
@@ -444,7 +442,6 @@ function connectRegions() {
 
     while (openRegions.size > 1) {
         var connector = rng.item(connectors);
-        console.log(connector);
   
         // TODO
         _addJunction(connector);
