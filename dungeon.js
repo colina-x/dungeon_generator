@@ -415,10 +415,10 @@ function carve(pos) {
   }
 function CanCarve(cell,dir){
     // 必须在边界内结束。
-    if(cell[0]+dir[0]*3>=0||cell[0]+dir[0]*3<WIDTH/SIZE||cell[1]+dir[1]*3>=0||cell[1]+dir[1]*3<HEIGHT/SIZE)
+    if(!(cell.x+dir.x*3>=0&&cell.x+dir.x*3<WIDTH/SIZE&&cell.y+dir.y*3>=0&&cell.y+dir.y*3<HEIGHT/SIZE))
             return false
     // 目的地不得开放。
-    return getTile([cell[0]+dir[0]*2,cell[1]+dir[1]*2])==0
+    return getTile(cell.plusNew(dir).plusNew(dir))==0
     // for(let i=-1;i<=1;i++){
     //     for(let j=-1;j<=1;j++){
     //     if(dir[0]==-i||dir[1]==-j) continue
@@ -429,9 +429,9 @@ function CanCarve(cell,dir){
     // }
     // return true
 }
-POSSIBLE_DIR=[[-1,0],[0,-1],[0,1],[1,0]]
+POSSIBLE_DIR=[new Vector2(-1,0),new Vector2(0,-1),new Vector2(0,1),new Vector2(1,0)]
 function growMaze(start){
-    cells = new Array()
+    cells =[]
     lastDir = null
     startRegion()
     carve(start)
@@ -439,12 +439,13 @@ function growMaze(start){
     // if(!CanDig(x,y)) return
     // Carve(x,y)
     // console.log(CanCarve([2,3],[1,0]))
-    cells.push([x,y])
+    cells.push(start)
     while(cells.length!=0){
         cell=cells[cells.length-1]
+        // console.log("cell", cell);
 
         // 查看哪些相邻单元格是打开的。
-        unmadeCells=new Array()
+        unmadeCells=[]
         // console.log(CanCarve([1,3],[1,0]))
         POSSIBLE_DIR.forEach(dir => {
             if(CanCarve(cell,dir)){
@@ -462,11 +463,11 @@ function growMaze(start){
                 // console.log(index);
                 dir=unmadeCells[index]
             }
-            carve([cell[0]+dir[0],cell[1]+dir[1]])
+            carve(cell.plusNew(dir))
             // console.log(cell,dir);
-            carve([cell[0]+dir[0]*2,cell[1]+dir[1]*2])
+            carve(cell.plusNew(dir).plusNew(dir))
 
-            cells.push([cell[0]+dir[0]*2,cell[1]+dir[1]*2])
+            cells.push(cell.plusNew(dir).plusNew(dir))
             // cells.push([cell[0]+dir[0],cell[1]+dir[1]])
             // unmadeCells.splice(index,1)
             lastDir=dir
@@ -484,49 +485,35 @@ function _addJunction(connector){
 }
 
 function connectRegions() {
-    var connectorRegions=new Set();     // TODO
+    var connectorRegions=[]     // TODO
     var connectors = new Array()
-    let temp = new Rect(x,y,w,h).inflate(-1).points();
+    let temp = new Rect(1,1,WIDTH/SIZE-2,HEIGHT/SIZE-2).points();
+    // console.log(temp);
     for(var i in temp){ 
+            // console.log(pos,dir,aaaa);
         var pos = temp[i];
         if(getTile(pos) != 0) continue;
+
         var regions = new Set();
         POSSIBLE_DIR.forEach(dir=>{
             // let aaaa=pos.add(dir)
             // console.log(pos,dir,aaaa);
-            var region = _regions[pos.add(dir)];   //TODO????
-            console.log(region);
+            var region = _regions[pos.plusNew(dir)];   //TODO????
+            // console.log(region);
 
             if(region != null) regions.add(region);
         });
         if(regions.size<2) continue;
         connectorRegions[pos] = regions;
-        console.log('connectorRegions:',connectorRegions);
+        // console.log('connectorRegions:',connectorRegions);
         connectors.push(pos)
     }
-    console.log(regions);
-    // for(let x=1;x<WIDTH/SIZE-1;x++){
-    //     for(let y=1;y<HEIGHT/SIZE-1;y++){
-    //         if(getTile([x,y])!=0) continue;
-    //         var regions_ = new Set();
-    //         POSSIBLE_DIR.forEach(dir=>{
-    //             // console.log(x+dir[0],y+dir[1]);
-    //             // console.log(_regions);
-    //             var region = _regions[x+dir[0]][y+dir[1]];   //TODO????
-    //             if(region!=null) regions_.add(region);
-    //         });
-        
-
-    //         if(regions_.length<2) continue;
-    //         connectorRegions[x][y] = regions_;
-    //         connectors.push([x,y])
-    //     }
-    // }
+    console.log(connectors);
 
     // console.log(connectors);
 
     var merged = {};
-    openRegions = new Set();
+    var openRegions = new Set();
     for (var i = 0; i <= _currentRegion; i++) {
         merged[i] = i;
         openRegions.add(i);
@@ -535,19 +522,19 @@ function connectRegions() {
     while (openRegions.size > 1) {
         // let index = Math.floor(Math.random()*connectors.length)
         var connector = rng.item(connectors);
-        console.log(connectors);
+        console.log(connector);
   
         // TODO
-        // _addJunction(connector);
+        _addJunction(connector);
         // console.log(connector);
   
         // Merge the connected regions. We'll pick one region (arbitrarily) and
         // map all of the other regions to its index.
         // console.log(connectorRegions[connector]);
         // if(connectorRegions[pos]==null) continue;
-        var regions = new Set(Array.from(connectorRegions[connector]).map((region) => merged[region]));
+        var regions = Array.from(connectorRegions[connector]).map((region) => merged[region]);
         var dest = regions[0];
-        var sources = Array.from(regions).slice(2);
+        var sources = Array.from(regions).slice(1);
   
         // Merge all of the affected regions. We have to look at *all* of the
         // regions because other regions may have previously been merged with
@@ -564,36 +551,45 @@ function connectRegions() {
         })
         temp=[]
         for(let i=0;i<connectors.length;i++) {
-            console.log(connector,pos);
+            let pos=connectors[i];
+            // console.log(connector,pos);
             if (connector.isCloseTo(pos, 2)) continue;
             // if (connector - pos < 2) continue;
-            console.log(connectorRegions,pos,connectorRegions[pos]);
-            if(connectorRegions[pos]==null) continue;
+            // console.log(connectorRegions,pos,connectorRegions[pos]);
+            // if(connectorRegions[pos]==null) continue;
             var regions = new Set(Array.from(connectorRegions[pos]).map((region) => merged[region]));
             if (regions.size > 1) temp.push(pos);
             if(rng.oneIn(extraConnectorChance)) _addJunction(pos);
         }
         connectors=temp;
-        // console.log(connectors.length);
-        // Remove any connectors that aren't needed anymore.
-        // connectors.removeWhere((pos) {
-        //   // Don't allow connectors right next to each other.
-        //   if (connector - pos < 2) return true;
-  
-        //   // If the connector no long spans different regions, we don't need it.
-        //   var regions = connectorRegions[pos].map((region) => merged[region])
-        //       .toSet();
-  
-        //   if (regions.length > 1) return false;
-  
-        //   // This connecter isn't needed, but connect it occasionally so that the
-        //   // dungeon isn't singly-connected.
-        //   if (rng.oneIn(extraConnectorChance)) _addJunction(pos);
-  
-        //   return true;
-        // });
       }
 }
+
+function removeDeadEnds() {
+    var done = false;
+
+    while (!done) {
+        done = true;
+        var temp = new Rect(1,1,WIDTH/SIZE-2,HEIGHT/SIZE-2).points()
+        for (let i in temp) {
+            var pos = temp[i]
+            if (getTile(pos) == 0) continue;
+
+            // If it only has one exit, it's a dead end.
+            var exits = 0;
+            POSSIBLE_DIR.forEach((dir)=>{
+            if (getTile(pos.plusNew(dir)) != 0) exits++;
+            });
+
+            if (exits != 1) continue;
+
+            done = false;
+            ctx.fillStyle = "black"
+            ctx.fillRect(pos.x*SIZE, pos.y*SIZE, SIZE , SIZE)
+            MAP[pos.x][pos.y] = 0;
+        }
+    }
+  }
 
 function startRegion() {
     _currentRegion++;
@@ -605,7 +601,8 @@ function getTile(pos) {
 
   //房间额外大小
 roomExtraSize = 0
-windingPercent = 0
+windingPercent = 50
+extraConnectorChance = 20
 _rooms = []
 ind = 0
   /// 当前区域的索引正在雕刻。
@@ -626,7 +623,7 @@ MAP = new Array(WIDTH/SIZE).fill(0).map(v => new Array(HEIGHT/SIZE).fill(0));
 _regions = new Array();
 // console.log(_regions);
 console.log('添加房间');
-addRooms(20)
+addRooms(50)
 console.log('生长树算法');
 
 ctx.fillStyle = "purple"
@@ -638,3 +635,4 @@ for (let y = 1; y < HEIGHT/SIZE-1; y += 2) {
     }
 }
 connectRegions()
+removeDeadEnds()
