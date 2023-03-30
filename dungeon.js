@@ -181,7 +181,7 @@ function growMaze(start){
         }
         else{
             cells.pop()
-            lastDir=[0,0]
+            lastDir=null
         }
     }
 }
