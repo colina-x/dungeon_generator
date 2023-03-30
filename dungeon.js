@@ -73,8 +73,6 @@ var Vector2 = function (x,y) {
 	
 };
 
-
-
 Vector2.prototype = {
 
 	reset: function ( x, y ) {
@@ -292,9 +290,6 @@ var rng = function(){};
 rng.range=(a,b) =>{
     return Math.floor(Math.random() * (b-a) + a)
 }
-// rng.range=(a) =>{
-//     return Math.floor(Math.random() * a)
-// }
 rng.item=(s) =>{
     var index = rng.range(0, s.length)
     // console.log(s[index]);
@@ -303,12 +298,6 @@ rng.item=(s) =>{
 rng.oneIn=(n) =>{
     return rng.range(n)==0
 }
-// class Vector2D{
-//     constructor(x,y){
-//         this.x=x
-//         this.y=y
-//     }
-// }
 
 /**
  * 判断两个房间是否重叠
@@ -330,7 +319,6 @@ function addRooms(n) {
     for (let i = 0; i < n; i++) {
         size = rng.range(1, 3 + roomExtraSize) * 2 + 1;
         rectangularity = rng.range(0, 1 + size / 2)* 2;
-        // console.log(size,rectangularity);
         w = size;
         h = size;
         if (rng.oneIn(2)) {
@@ -341,10 +329,8 @@ function addRooms(n) {
         x = rng.range(0, (WIDTH / SIZE - w - 1) / 2) * 2 + 1
         y = rng.range(0, (HEIGHT / SIZE - h - 1) / 2) * 2 + 1
         room = new Rect(x,y,w,h);
-        // console.log(x,y,w,h);
         overlaps = false;
         for(let other in _rooms) {
-            // console.log(_rooms,other);
             if (IsOverlap(room, _rooms[other])) {
                 overlaps = true;
                 break;
@@ -353,60 +339,14 @@ function addRooms(n) {
         if (overlaps) continue;
         _rooms.push(room);
         startRegion();
-        // console.log(new Rect(x,y,w,h).points());
         temp = new Rect(x,y,w,h).points()
         for(var pos in temp){ 
-        // console.log(temp[pos]);
             carve(temp[pos]);
         }
     }
     // console.log("生成房间数：", currentRegion);
 }
-/**
- * 画房间
- * @param {number} x 左上角x坐标
- * @param {number} y 左上角y坐标
- * @param {number} w 宽
- * @param {number} h 高
- */
-function draw(x,y,w,h){
-    for(let i=x;i<x+w;i++){
-            regions[i].fill(1,y,y+h)
-            
-    }
-    ctx.fillRect(x*SIZE, y*SIZE, w*SIZE , h*SIZE)
-    ctx.fillStyle=COLOR[++ind%COLOR.length]
 
-}
-
-function Maze(){
-    console.log("填充");
-    for(let x=1;x<WIDTH/SIZE;x+=2){
-        for(let y=1;y<HEIGHT/SIZE;y+=2){
-            if(IsWall(x,y)){
-                GrowMaze(x,y)
-            }
-        }
-    }
-}
-function CanDig(x,y){
-    for(let i=-1;i<=1;i++){
-        for(let j=-1;j<=1;j++){
-            if(!IsWall(x+i,y+j))
-                return false
-        }
-    }
-    return true
-}
-function IsWall(x,y){
-    if(x<0||y<0||x>=WIDTH/SIZE||y>=HEIGHT/SIZE)
-        return false
-    return MAP[x][y]===0
-}
-function Carve(x,y){
-    MAP[x][y]=1
-    ctx.fillRect(x*SIZE, y*SIZE, SIZE, SIZE)
-}
 function carve(pos) {
     // console.log(pos);
     ctx.fillRect(pos.x*SIZE, pos.y*SIZE, SIZE , SIZE)
@@ -419,17 +359,8 @@ function CanCarve(cell,dir){
             return false
     // 目的地不得开放。
     return getTile(cell.plusNew(dir).plusNew(dir))==0
-    // for(let i=-1;i<=1;i++){
-    //     for(let j=-1;j<=1;j++){
-    //     if(dir[0]==-i||dir[1]==-j) continue
-    //     // console.log(cell,dir,cell[0]+i+dir[0],cell[1]+j+dir[1]);
-    //     if(!IsWall(cell[0]+i+dir[0],cell[1]+j+dir[1]))
-    //         return false
-    //     }
-    // }
-    // return true
 }
-POSSIBLE_DIR=[new Vector2(-1,0),new Vector2(0,-1),new Vector2(0,1),new Vector2(1,0)]
+
 function growMaze(start){
     cells =[]
     lastDir = null
@@ -488,29 +419,21 @@ function connectRegions() {
     var connectorRegions=[]     // TODO
     var connectors = new Array()
     let temp = new Rect(1,1,WIDTH/SIZE-2,HEIGHT/SIZE-2).points();
-    // console.log(temp);
     for(var i in temp){ 
-            // console.log(pos,dir,aaaa);
         var pos = temp[i];
         if(getTile(pos) != 0) continue;
 
         var regions = new Set();
         POSSIBLE_DIR.forEach(dir=>{
-            // let aaaa=pos.add(dir)
-            // console.log(pos,dir,aaaa);
             var region = _regions[pos.plusNew(dir)];   //TODO????
-            // console.log(region);
 
             if(region != null) regions.add(region);
         });
         if(regions.size<2) continue;
         connectorRegions[pos] = regions;
-        // console.log('connectorRegions:',connectorRegions);
         connectors.push(pos)
     }
     console.log(connectors);
-
-    // console.log(connectors);
 
     var merged = {};
     var openRegions = new Set();
@@ -520,18 +443,14 @@ function connectRegions() {
     }
 
     while (openRegions.size > 1) {
-        // let index = Math.floor(Math.random()*connectors.length)
         var connector = rng.item(connectors);
         console.log(connector);
   
         // TODO
         _addJunction(connector);
-        // console.log(connector);
   
         // Merge the connected regions. We'll pick one region (arbitrarily) and
         // map all of the other regions to its index.
-        // console.log(connectorRegions[connector]);
-        // if(connectorRegions[pos]==null) continue;
         var regions = Array.from(connectorRegions[connector]).map((region) => merged[region]);
         var dest = regions[0];
         var sources = Array.from(regions).slice(1);
@@ -552,11 +471,7 @@ function connectRegions() {
         temp=[]
         for(let i=0;i<connectors.length;i++) {
             let pos=connectors[i];
-            // console.log(connector,pos);
             if (connector.isCloseTo(pos, 2)) continue;
-            // if (connector - pos < 2) continue;
-            // console.log(connectorRegions,pos,connectorRegions[pos]);
-            // if(connectorRegions[pos]==null) continue;
             var regions = new Set(Array.from(connectorRegions[pos]).map((region) => merged[region]));
             if (regions.size > 1) temp.push(pos);
             if(rng.oneIn(extraConnectorChance)) _addJunction(pos);
@@ -599,29 +514,21 @@ function getTile(pos) {
     return MAP[pos.x][pos.y]
 }
 
-  //房间额外大小
+//房间额外大小
 roomExtraSize = 0
 windingPercent = 50
 extraConnectorChance = 20
 _rooms = []
 ind = 0
-  /// 当前区域的索引正在雕刻。
+/// 当前区域的索引正在雕刻。
 _currentRegion = -1;
 ctx.fillStyle = COLOR[ind];
-// ctx.fillRect(0,0,SIZE,SIZE)
-/*
-for (i = 0;i< WIDTH / SIZE;i++) {
-    for (j = 0; j < HEIGHT / SIZE;j++) {
-        ctx.fillRect(i, j, SIZE, SIZE)
-        ctx.fillStyle = COLOR[++ind];
-    }
-}
-*/
+POSSIBLE_DIR=[new Vector2(-1,0),new Vector2(0,-1),new Vector2(0,1),new Vector2(1,0)]
 MAP = new Array(WIDTH/SIZE).fill(0).map(v => new Array(HEIGHT/SIZE).fill(0));
-// console.log(MAP);
-// _regions = new Array(WIDTH/SIZE).fill(0).map(v => new Array(HEIGHT/SIZE).fill(0));
 _regions = new Array();
-// console.log(_regions);
+
+
+
 console.log('添加房间');
 addRooms(50)
 console.log('生长树算法');
@@ -634,5 +541,17 @@ for (let y = 1; y < HEIGHT/SIZE-1; y += 2) {
         growMaze(pos);
     }
 }
+console.log('链接房间');
 connectRegions()
+console.log('删除多余通道');
 removeDeadEnds()
+
+// ctx.fillRect(0,0,SIZE,SIZE)
+/*
+for (i = 0;i< WIDTH / SIZE;i++) {
+    for (j = 0; j < HEIGHT / SIZE;j++) {
+        ctx.fillRect(i, j, SIZE, SIZE)
+        ctx.fillStyle = COLOR[++ind];
+    }
+}
+*/
