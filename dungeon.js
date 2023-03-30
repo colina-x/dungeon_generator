@@ -432,7 +432,7 @@ function CanCarve(cell,dir){
 POSSIBLE_DIR=[[-1,0],[0,-1],[0,1],[1,0]]
 function growMaze(start){
     cells = new Array()
-    lastDir = [0,0]
+    lastDir = null
     startRegion()
     carve(start)
 
@@ -473,7 +473,7 @@ function growMaze(start){
         }
         else{
             cells.pop()
-            lastDir=[0,0]
+            lastDir=null
         }
     }
 }
