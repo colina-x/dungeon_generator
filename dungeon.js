@@ -4,7 +4,7 @@ const ctx = canvas.getContext('2d');
 const SIZE = 5
 const WIDTH = 395
 const HEIGHT = 295
-const COLOR=["green","red","pink","blue","yellow","skyblue","#00ff00","#ddd","#733"]
+const COLOR=["black","green","purple","pink","blue","yellow","skyblue","#00ff00","#ddd","#733"]
 var Rect = function(x,y,width,height) {
     this.x = x || 0
     this.y = y || 0
@@ -315,7 +315,7 @@ function IsOverlap(room, other) {
  * 生成房间
  * @param {number} n 房间个数
  */
-function addRooms(n) {
+async function addRooms(n) {
     for (let i = 0; i < n; i++) {
         size = rng.range(1, 3 + roomExtraSize) * 2 + 1;
         rectangularity = rng.range(0, 1 + size / 2)* 2;
@@ -341,16 +341,18 @@ function addRooms(n) {
         startRegion();
         temp = new Rect(x,y,w,h).points()
         for(var pos in temp){ 
-            carve(temp[pos]);
+            carve(temp[pos],1);
         }
+        await render()
     }
     // console.log("生成房间数：", currentRegion);
 }
 
-function carve(pos) {
-    ctx.fillRect(pos.x*SIZE, pos.y*SIZE, SIZE , SIZE)
-    MAP[pos.x][pos.y] = 1;
+function carve(pos, tile) {
+    // ctx.fillRect(pos.x*SIZE, pos.y*SIZE, SIZE , SIZE)
+    MAP[pos.x][pos.y] = tile;
     _regions[pos] = _currentRegion;
+    // await render()
   }
 function CanCarve(cell,dir){
     // 必须在边界内结束。
@@ -360,11 +362,12 @@ function CanCarve(cell,dir){
     return getTile(cell.plusNew(dir).plusNew(dir))==0
 }
 
-function growMaze(start){
+async function growMaze(start){
     cells =[]
     lastDir = null
     startRegion()
-    carve(start)
+    carve(start,2)
+    await render()
 
     // if(!CanDig(x,y)) return
     // Carve(x,y)
@@ -393,9 +396,11 @@ function growMaze(start){
                 // console.log(index);
                 dir=unmadeCells[index]
             }
-            carve(cell.plusNew(dir))
+            carve(cell.plusNew(dir),2)
             // console.log(cell,dir);
-            carve(cell.plusNew(dir).plusNew(dir))
+            // render()
+            carve(cell.plusNew(dir).plusNew(dir),2)
+            await render()
 
             cells.push(cell.plusNew(dir).plusNew(dir))
             // cells.push([cell[0]+dir[0],cell[1]+dir[1]])
@@ -409,12 +414,13 @@ function growMaze(start){
     }
 }
 
-function _addJunction(connector){
-    MAP[connector.x][connector.y] = 1
+async function _addJunction(connector){
+    MAP[connector.x][connector.y] = 2
+    await render()
     ctx.fillRect(connector.x*SIZE,connector.y*SIZE, SIZE , SIZE)
 }
 
-function connectRegions() {
+async function connectRegions() {
     var connectorRegions=[]     // TODO
     var connectors = new Array()
     let temp = new Rect(1,1,WIDTH/SIZE-2,HEIGHT/SIZE-2).points();
@@ -444,7 +450,8 @@ function connectRegions() {
         var connector = rng.item(connectors);
   
         // TODO
-        _addJunction(connector);
+        await _addJunction(connector);
+        // render()
   
         // Merge the connected regions. We'll pick one region (arbitrarily) and
         // map all of the other regions to its index.
@@ -471,13 +478,16 @@ function connectRegions() {
             if (connector.isCloseTo(pos, 2)) continue;
             var regions = new Set(Array.from(connectorRegions[pos]).map((region) => merged[region]));
             if (regions.size > 1) temp.push(pos);
-            if(rng.oneIn(extraConnectorChance)) _addJunction(pos);
+            if(rng.oneIn(extraConnectorChance)) {
+                await _addJunction(pos);
+                // render()
+            }
         }
         connectors=temp;
       }
 }
 
-function removeDeadEnds() {
+async function removeDeadEnds() {
     var done = false;
 
     while (!done) {
@@ -499,6 +509,7 @@ function removeDeadEnds() {
             ctx.fillStyle = "black"
             ctx.fillRect(pos.x*SIZE, pos.y*SIZE, SIZE , SIZE)
             MAP[pos.x][pos.y] = 0;
+            await render()
         }
     }
   }
@@ -511,12 +522,22 @@ function getTile(pos) {
     return MAP[pos.x][pos.y]
 }
 
+async function render() {
+    for (let i = 0; i < MAP.length; i++) {
+        for (let j = 0; j < MAP[0].length; j++) {
+            ctx.fillStyle = COLOR[MAP[i][j]];
+            ctx.fillRect(i*SIZE,j*SIZE,SIZE,SIZE)
+        }
+    }
+    await sleep(20)
+}
+
 //房间额外大小
-roomExtraSize = 0
+roomExtraSize = 5
 windingPercent = 50
 extraConnectorChance = 20
 _rooms = []
-ind = 0
+ind = 1
 /// 当前区域的索引正在雕刻。
 _currentRegion = -1;
 ctx.fillStyle = COLOR[ind];
@@ -524,24 +545,35 @@ POSSIBLE_DIR=[new Vector2(-1,0),new Vector2(0,-1),new Vector2(0,1),new Vector2(1
 MAP = new Array(WIDTH/SIZE).fill(0).map(v => new Array(HEIGHT/SIZE).fill(0));
 _regions = new Array();
 
+const sleep = (d) => new Promise((r)=>setTimeout(r,d))
 
+const main = async () => {
+    console.log('添加房间');
+    await addRooms(200)
+    // render()
+    await sleep(1000)
+    console.log('生长树算法');
 
-console.log('添加房间');
-addRooms(50)
-console.log('生长树算法');
-
-ctx.fillStyle = "purple"
-for (let y = 1; y < HEIGHT/SIZE-1; y += 2) {
-    for (let x = 1; x < WIDTH/SIZE-1; x += 2) {
-        let pos = new Vector2(x,y);
-        if (getTile(pos) != 0) continue;
-        growMaze(pos);
+    ctx.fillStyle = "purple"
+    for (let y = 1; y < HEIGHT/SIZE-1; y += 2) {
+        for (let x = 1; x < WIDTH/SIZE-1; x += 2) {
+            let pos = new Vector2(x,y);
+            if (getTile(pos) != 0) continue;
+            await growMaze(pos);
+            
+        }
     }
+    await sleep(1000)
+    console.log('链接房间');
+    await connectRegions()
+    // render()
+    await sleep(1000)
+    console.log('删除多余通道');
+    await removeDeadEnds()
+    // render()
 }
-console.log('链接房间');
-connectRegions()
-console.log('删除多余通道');
-removeDeadEnds()
+main()
+// console.log(MAP)
 
 // ctx.fillRect(0,0,SIZE,SIZE)
 /*
