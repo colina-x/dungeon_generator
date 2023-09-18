@@ -341,17 +341,21 @@ async function addRooms(n) {
         startRegion();
         temp = new Rect(x,y,w,h).points()
         for(var pos in temp){ 
-            carve(temp[pos],1);
+            await carve(temp[pos],1,false);
         }
         await render()
     }
     // console.log("生成房间数：", currentRegion);
 }
 
-function carve(pos, tile) {
-    // ctx.fillRect(pos.x*SIZE, pos.y*SIZE, SIZE , SIZE)
+async function carve(pos, tile, r = true) {
     MAP[pos.x][pos.y] = tile;
     _regions[pos] = _currentRegion;
+    if(r){
+        ctx.fillStyle = COLOR[MAP[pos.x][pos.y]];
+        ctx.fillRect(pos.x*SIZE, pos.y*SIZE, SIZE , SIZE)
+        await sleep(20)
+    }
     // await render()
   }
 function CanCarve(cell,dir){
@@ -366,8 +370,8 @@ async function growMaze(start){
     cells =[]
     lastDir = null
     startRegion()
-    carve(start,2)
-    await render()
+    await carve(start,2)
+    // await render()
 
     // if(!CanDig(x,y)) return
     // Carve(x,y)
@@ -396,11 +400,11 @@ async function growMaze(start){
                 // console.log(index);
                 dir=unmadeCells[index]
             }
-            carve(cell.plusNew(dir),2)
+            await carve(cell.plusNew(dir),2)
             // console.log(cell,dir);
             // render()
-            carve(cell.plusNew(dir).plusNew(dir),2)
-            await render()
+            await carve(cell.plusNew(dir).plusNew(dir),2)
+            // await render()
 
             cells.push(cell.plusNew(dir).plusNew(dir))
             // cells.push([cell[0]+dir[0],cell[1]+dir[1]])
@@ -416,8 +420,10 @@ async function growMaze(start){
 
 async function _addJunction(connector){
     MAP[connector.x][connector.y] = 2
-    await render()
+    // await render()
+    ctx.fillStyle = COLOR[2];
     ctx.fillRect(connector.x*SIZE,connector.y*SIZE, SIZE , SIZE)
+    await sleep(20)
 }
 
 async function connectRegions() {
